@@ -1,0 +1,11 @@
+# pytest-cov, coverage and codecov has to be in this specific order as
+# the pip dependency resolver won't work alone
+addict==2.2.0
+pytest-cov
+coverage
+codecov
+celery==4.2.1
+envparse
+redislite
+requests
+PyYAML==4.2b4

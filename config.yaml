@@ -1,0 +1,28 @@
+ot_target_enrichment_api:
+  uri: /private/enrichment/targets
+  method: POST
+  params: {"target":[],"pvalue":1,"from":0,"size":10000}
+ot_target_api:
+  uri: /private/target
+  method: POST
+  params: {"id":[],"size":,"fields":["ensembl_gene_id","drugs","approved_symbol","reactome","uniprot_id","tractability"]}
+ot_evidence_filter_api:
+  uri: /public/evidence/filter
+  method: POST
+  params: {"target":[],"size":10000,"datasource":["chembl"],"fields":["disease.efo_info","drug","evidence","target","access_level"],"expandefo":true}
+uniprot:
+  uri: https://www.targetvalidation.org/proxy/www.reactome.org/AnalysisService/identifiers/projection?pageSize=1&page=1&resource=UNIPROT
+  method: POST
+uniprot_pagination:
+  uri: https://www.targetvalidation.org/proxy/www.reactome.org/AnalysisService/token/{token}?pageSize=0&page=1&resource=UNIPROT
+  method: GET
+biit_profile:
+  uri: https://biit.cs.ut.ee/gprofiler/api/gost/profile/
+  method: POST
+  params: {"organism":"hsapiens","user_threshold":1,"sources":["GO:MF","GO:CC","GO:BP"],"query":[]}
+partner_P03891:
+  uri: https://www.targetvalidation.org/proxy/www.omnipathdb.org/interactions?partners=P03891&format=json&fields=sources
+  method: GET 
+reactome_all:
+  uri: https://www.targetvalidation.org/proxy/www.reactome.org/AnalysisService/token/{token}/found/all
+  method: POST
