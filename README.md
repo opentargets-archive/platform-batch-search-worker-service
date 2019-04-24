@@ -16,8 +16,8 @@ The celery worker uses three ENV VARIABLES: <br>
 
 
 List of tasks available
-- ```batch_search_worker.py.run```
-- ```batch_search_worker.py.ping```
+- ```batch_search_worker.run```
+- ```batch_search_worker.ping```
 	 
 
 
