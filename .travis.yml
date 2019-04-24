@@ -4,7 +4,7 @@ services:
   - docker
 env:
   global:
-    - QUAY_REPO="quay.io/opentargets/platform-worker-service"
+    - QUAY_REPO="quay.io/opentargets/platform-batch-search-worker-service"
 python:
   - 2.7
 install:
