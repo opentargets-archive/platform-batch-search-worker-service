@@ -2,7 +2,7 @@
 Platform batch search worker service is a dedicated worker processes constantly monitor task queues for running OpenTarget Batch Search returning only the result in the JSON format
 https://www.targetvalidation.org/batch-search
 
-##Installation Requirements
+### Installation Requirements
 * python 2 (celery library)
 * git
 
