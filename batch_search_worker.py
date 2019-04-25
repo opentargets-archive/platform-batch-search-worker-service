@@ -110,15 +110,18 @@ def get_biit_profile(yaml_dict,list_symbols):
     return {'message': 'BIIT resource not available'}
 
 def get_partners_proteins(yaml_dict, list_uniprot_ids):
+    partners_proteins_response = {}
     if len(list_uniprot_ids) == 0:
         return []   
-    # GET issue. Lenght of info related with 255 chars. Split the input.
+    # GET issue. Lenght of info related with 255 chars. Split the input. Better for caching the result.
     if 'partners_proteins' in yaml_dict:
         uri = yaml_dict.partners_proteins.uri
-        protein_ids = ','.join(list_uniprot_ids)
-        uri= uri.replace('{protein_ids}',protein_ids)
         method=yaml_dict.partners_proteins.method
-        return request_resouce(method,uri,None, {"Content-Type": "application/json"})        
+        for uniprot_id in list_uniprot_ids:
+            uri_protein_id= uri.replace('{protein_ids}',uniprot_id)
+            if uniprot_id not in partners_proteins_response:
+                partners_proteins_response[uniprot_id] = request_resouce(method,uri_protein_id,None, {"Content-Type": "application/json"})
+        return partners_proteins_response
     return {'message': 'Partners proteins resource not available'}
 
 def get_reactome_all(yaml_dict,uniprot_stats_info,pathways):
