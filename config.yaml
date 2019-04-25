@@ -20,8 +20,8 @@ biit_profile:
   uri: https://biit.cs.ut.ee/gprofiler/api/gost/profile/
   method: POST
   params: {"organism":"hsapiens","user_threshold":1,"sources":["GO:MF","GO:CC","GO:BP"],"query":[]}
-partner_P03891:
-  uri: https://www.targetvalidation.org/proxy/www.omnipathdb.org/interactions?partners=P03891&format=json&fields=sources
+partners_proteins:
+  uri: https://www.targetvalidation.org/proxy/www.omnipathdb.org/interactions?partners={protein_ids}&format=json&fields=sources
   method: GET 
 reactome_all:
   uri: https://www.targetvalidation.org/proxy/www.reactome.org/AnalysisService/token/{token}/found/all

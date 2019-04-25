@@ -2,6 +2,7 @@ from envparse import env
 from celery import Celery
 import json
 import requests
+import time
 from common.YAMLReader import YAMLReader
 
 BROKER_URL = env('CELERY_BROKER_URL', default='redis://localhost:6379/0')
@@ -108,12 +109,17 @@ def get_biit_profile(yaml_dict,list_symbols):
         return request_resouce(method,url.uri,json.dumps(data_binary), {"Content-Type": "application/json"})
     return {'message': 'BIIT resource not available'}
 
-def get_partner_P03891(yaml_dict):
-    if 'partner_P03891' in yaml_dict:
-        uri = yaml_dict.partner_P03891.uri
-        method=yaml_dict.partner_P03891.method
+def get_partners_proteins(yaml_dict, list_uniprot_ids):
+    if len(list_uniprot_ids) == 0:
+        return []   
+    # GET issue. Lenght of info related with 255 chars. Split the input.
+    if 'partners_proteins' in yaml_dict:
+        uri = yaml_dict.partners_proteins.uri
+        protein_ids = ','.join(list_uniprot_ids)
+        uri= uri.replace('{protein_ids}',protein_ids)
+        method=yaml_dict.partners_proteins.method
         return request_resouce(method,uri,None, {"Content-Type": "application/json"})        
-    return {'message': 'Partner P03891 resource not available'}
+    return {'message': 'Partners proteins resource not available'}
 
 def get_reactome_all(yaml_dict,uniprot_stats_info,pathways):
     token='' if 'token' not in uniprot_stats_info else uniprot_stats_info['token']
@@ -124,23 +130,34 @@ def get_reactome_all(yaml_dict,uniprot_stats_info,pathways):
         return request_resouce(method,url,json.dumps(data_binary), {"Content-Type": "application/json"})
     return {'message': 'Reactome resource not available'}
 
-def get_list_symbols(ot_target_api_response):
+def get_list_symbols_and_proteins(ot_target_api_response):
     symbols=[]
+    uniprot = []
     if 'total' in ot_target_api_response:
         if ot_target_api_response['total'] > 0:
             for elem in ot_target_api_response['data']:
                 symbols.append(elem['approved_symbol'])
-    return symbols
+                if elem['uniprot_id'] != "":
+                    uniprot.append(elem['uniprot_id'])
+    return {'symbols': symbols, 'uniprot': uniprot }
     
 
-
+def get_time_of_execution(start):
+    end = time.time()
+    return end-start 
 
 #data['Content-Type'] = ot_response.headers['Content-Type']
 #data['status_code'] = ot_response.status_code
 #data['state']= 'SUCCESS'       
-@app.task
-def run(uri,url_prefix,args_parameters):
+@app.task(bind=True)
+def run(self,uri,url_prefix,args_parameters):
     # POST a request using uri and parameter. The response should be JSON.
+    #print('Executing task id {0.id}, args: {0.args!r} kwargs: {0.kwargs!r}'.format(
+    #            self.request))
+    task_id=self.request.id
+    backend = app.backend
+    backend.store_result(task_id, None, "STARTED 0/10")
+    start_clock = time.time()
     complete_response = {}
     if 'target' not in args_parameters:
         complete_response = json.dumps({'error': 'Targets are mandatory'})
@@ -148,35 +165,45 @@ def run(uri,url_prefix,args_parameters):
         yaml = YAMLReader()
         yaml_dict = yaml.read_yaml()
         ot_target_api_response = get_ot_target_api(yaml_dict, uri, url_prefix, args_parameters)
-        list_symbols = get_list_symbols(ot_target_api_response)
-        if list_symbols > 0: 
+        list_symbols_and_uniprot_ids = get_list_symbols_and_proteins(ot_target_api_response)
+        backend.store_result(task_id, "1/10", "STARTED")
+        if len(list_symbols_and_uniprot_ids['symbols']) > 0:
             complete_response['targets'] = ot_target_api_response
             ot_target_enrich_api_response = get_ot_target_enrich_api(yaml_dict, uri, url_prefix, args_parameters)
             complete_response['target_enrichment'] = ot_target_enrich_api_response
-            uniprot=get_uniprot(yaml_dict,list_symbols)
+            backend.store_result(task_id, "2/10", "STARTED")
+            uniprot=get_uniprot(yaml_dict,list_symbols_and_uniprot_ids['symbols'])
             complete_response['uniprot']=uniprot
+            backend.store_result(task_id, "3/10", "STARTED")
             uniprot_stats=uniprot_stats_info(uniprot)
+            backend.store_result(task_id, "4/10", "STARTED")
             evidence_filter=get_ot_evidence_filter_api(yaml_dict, uri, url_prefix, args_parameters)
             complete_response['evidence_filter']=evidence_filter
+            backend.store_result(task_id, "5/10", "STARTED")
             uniprot_complete = get_uniprot_pagination(yaml_dict,uniprot_stats)
             complete_response['uniprot_complete']=uniprot_complete
+            backend.store_result(task_id, "6/10", "STARTED")
             pathways=get_pathways(uniprot_complete)
             complete_response['pathways']=pathways
-            biit=get_biit_profile(yaml_dict,list_symbols)
+            backend.store_result(task_id, "7/10", "STARTED")
+            biit=get_biit_profile(yaml_dict,list_symbols_and_uniprot_ids['symbols'])
             complete_response['biit']=biit
-            partner_P03891=get_partner_P03891(yaml_dict)
-            complete_response['partner_P03891']=partner_P03891
+            backend.store_result(task_id, "8/10", "STARTED")
+            partners_proteins=get_partners_proteins(yaml_dict,list_symbols_and_uniprot_ids['uniprot'])
+            complete_response['partners_proteins']=partners_proteins
+            backend.store_result(task_id, "9/10", "STARTED")
             reactome=get_reactome_all(yaml_dict,uniprot_stats,pathways)
             complete_response['reactome']=reactome
+            backend.store_result(task_id, "10/10", "STARTED")
             complete_response['Content-Type'] = 'application/json'
             complete_response['status_code'] = 200
             complete_response['state']= 'SUCCESS'
-        else:
-            complete_response = {'Content-Type':'application/json', 'status_code': '500', 'message': 'No valid symbols'}
-    
+            complete_response['exec_time'] = get_time_of_execution(start_clock)
+            print complete_response['exec_time']
+        else:        
+            complete_response = {'Content-Type':'application/json', 'status_code': '500', 'message': 'No valid symbols', 'exec_time': get_time_of_execution(start_clock)}
     except Exception as ex:
-        complete_response = {'Content-Type':'application/json', 'status_code': '500', 'message': str(ex)}
-    
+        complete_response = {'Content-Type':'application/json', 'status_code': '500', 'message': str(ex), 'exec_time': get_time_of_execution(start_clock)}
     return json.dumps(complete_response)
 
 @app.task
