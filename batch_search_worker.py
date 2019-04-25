@@ -170,7 +170,7 @@ def run(self,uri,url_prefix,args_parameters):
         if len(list_symbols_and_uniprot_ids['symbols']) > 0:
             complete_response['targets'] = ot_target_api_response
             ot_target_enrich_api_response = get_ot_target_enrich_api(yaml_dict, uri, url_prefix, args_parameters)
-            complete_response['target_enrichment'] = ot_target_enrich_api_response
+            complete_response['targets_enrichment'] = ot_target_enrich_api_response
             backend.store_result(task_id, "2/10", "STARTED")
             uniprot=get_uniprot(yaml_dict,list_symbols_and_uniprot_ids['symbols'])
             complete_response['uniprot']=uniprot
